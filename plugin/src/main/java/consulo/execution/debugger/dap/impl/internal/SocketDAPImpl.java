@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ForkJoinPool;
 
@@ -177,7 +178,7 @@ public abstract class SocketDAPImpl extends DAPImpl {
                     lastException = null;
                     break;
                 }
-                catch (ConnectException c) {
+                catch (SocketException c) {
                     lastException = c;
                     TimeoutUtil.sleep(1000L);
                 }
