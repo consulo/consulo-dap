@@ -4,10 +4,12 @@ import consulo.execution.debugger.dap.protocol.event.TerminatedEvent;
 import consulo.util.io.ByteArraySequence;
 import consulo.util.io.ByteSequence;
 import consulo.util.io.UnsyncByteArrayOutputStream;
+import consulo.util.lang.TimeoutUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -168,7 +170,22 @@ public abstract class SocketDAPImpl extends DAPImpl {
             mySocket.setKeepAlive(true);
             mySocket.setReuseAddress(true);
 
-            mySocket.connect(new InetSocketAddress(myHost, myPort), myPort);
+            IOException lastException = null;
+            for (int i = 0; i < 5; i++) {
+                try {
+                    mySocket.connect(new InetSocketAddress(myHost, myPort), myPort);
+                    lastException = null;
+                }
+                catch (ConnectException c) {
+                    lastException = c;
+                    TimeoutUtil.sleep(1000L);
+                }
+            }
+
+            if (lastException != null) {
+                throw lastException;
+            }
+
             myOutputStream = mySocket.getOutputStream();
             startListening = true;
         }
