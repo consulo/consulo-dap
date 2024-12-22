@@ -175,6 +175,7 @@ public abstract class SocketDAPImpl extends DAPImpl {
                 try {
                     mySocket.connect(new InetSocketAddress(myHost, myPort), myPort);
                     lastException = null;
+                    break;
                 }
                 catch (ConnectException c) {
                     lastException = c;
