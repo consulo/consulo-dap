@@ -1,0 +1,8 @@
+<consulo-plugin url="https://github.com/consulo/consulo-dap">
+    <id>consulo.dap</id>
+    <name>Debug Adapter Protocol - API</name>
+    <description>Debug Adapter Protocol API &amp; Implementations for plugins</description>
+    <tags>
+        <tag>run.debugger</tag>
+    </tags>
+</consulo-plugin>
