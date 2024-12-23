@@ -9,11 +9,11 @@ import consulo.util.lang.TimeoutUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.concurrent.ForkJoinPool;
 
 /**
@@ -167,15 +167,17 @@ public abstract class SocketDAPImpl extends DAPImpl {
     protected void write(byte[] bytes) throws IOException {
         boolean startListening = false;
         if (mySocket == null) {
-            mySocket = new Socket();
-            mySocket.setKeepAlive(true);
-            mySocket.setReuseAddress(true);
-
+            Socket socket = null;
             IOException lastException = null;
             for (int i = 0; i < 5; i++) {
                 try {
-                    mySocket.connect(new InetSocketAddress(myHost, myPort), myPort);
+                    Socket tempSocket = new Socket();
+                    tempSocket.setKeepAlive(true);
+                    tempSocket.setReuseAddress(true);
+                    tempSocket.connect(new InetSocketAddress(myHost, myPort), myPort);
+
                     lastException = null;
+                    socket = tempSocket;
                     break;
                 }
                 catch (SocketException c) {
@@ -188,7 +190,8 @@ public abstract class SocketDAPImpl extends DAPImpl {
                 throw lastException;
             }
 
-            myOutputStream = mySocket.getOutputStream();
+            mySocket = Objects.requireNonNull(socket);
+            myOutputStream = socket.getOutputStream();
             startListening = true;
         }
 
