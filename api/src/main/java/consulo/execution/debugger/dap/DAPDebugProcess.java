@@ -281,7 +281,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
                 dap.launch(launch).whenCompleteAsync((lResult, t1) -> {
                     if (lResult != null) {
-                        dap.configurationDone(new ConfigurationDoneArguments());
+                        dap.configurationDone(createConfigurationDoneArguments());
                     }
                 });
             }
@@ -296,6 +296,11 @@ public abstract class DAPDebugProcess extends XDebugProcess {
         LaunchRequestArguments launch = new LaunchRequestArguments();
         launch.env = Platform.current().os().environmentVariables();
         return launch;
+    }
+
+    @Nonnull
+    protected ConfigurationDoneArguments createConfigurationDoneArguments() {
+            return new ConfigurationDoneArguments();
     }
 
     @Override
