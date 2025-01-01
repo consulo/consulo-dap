@@ -125,13 +125,25 @@ public abstract class DAPDebugProcess extends XDebugProcess {
     }
 
     protected void doPause(@Nullable XBreakpoint<?> breakpoint, int threadId) {
-        StackFrame[] stackTraces = getStackTraces(threadId);
+        DAP dap = myDapCache.get();
+
+        ThreadsResult threads;
+        DAPSuspendContext context;
+
+        try {
+            threads = dap.threads(new ThreadsArguments()).get();
+            context = new DAPSuspendContext(dap, threads.threads, threadId);
+        }
+        catch (InterruptedException | ExecutionException e) {
+            LOG.warn(e);
+            return;
+        }
 
         if (breakpoint != null) {
-            getSession().breakpointReached(breakpoint, null, new DAPSuspendContext(stackTraces, threadId));
+            getSession().breakpointReached(breakpoint, null, context);
         }
         else {
-            getSession().positionReached(new DAPSuspendContext(stackTraces, threadId));
+            getSession().positionReached(context);
         }
     }
 

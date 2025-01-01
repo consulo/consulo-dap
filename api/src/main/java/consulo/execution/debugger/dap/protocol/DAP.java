@@ -43,6 +43,9 @@ public interface DAP {
     CompletableFuture<VariablesResult> variables(VariablesArguments arguments);
 
     @Nonnull
+    CompletableFuture<ThreadsResult> threads(ThreadsArguments arguments);
+
+    @Nonnull
     @ImplMethod
     <R> CompletableFuture<R> request(@Nonnull String requestName, @Nonnull Object arguments, @Nonnull Class<R> resultClass);
 

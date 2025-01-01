@@ -3,6 +3,7 @@ package consulo.execution.debugger.dap;
 import consulo.execution.debug.frame.XExecutionStack;
 import consulo.execution.debug.frame.XStackFrame;
 import consulo.execution.debugger.dap.protocol.StackFrame;
+import consulo.execution.debugger.dap.protocol.Thread;
 import jakarta.annotation.Nullable;
 
 import java.util.List;
@@ -14,8 +15,8 @@ import java.util.List;
 public class DAPExecutionStack extends XExecutionStack {
     private final DAPStackFrame[] myStackTraces;
 
-    public DAPExecutionStack(int threadId, StackFrame[] stackTraces) {
-        super(String.valueOf(threadId));
+    public DAPExecutionStack(Thread thread, StackFrame[] stackTraces) {
+        super(thread.name);
 
         myStackTraces = new DAPStackFrame[stackTraces.length];
 
