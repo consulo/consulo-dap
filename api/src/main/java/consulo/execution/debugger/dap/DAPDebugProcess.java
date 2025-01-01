@@ -33,8 +33,8 @@ import java.util.concurrent.ExecutionException;
  * @author VISTALL
  * @since 2024-12-25
  */
-public abstract class DpDebugProcess extends XDebugProcess {
-    private static final Logger LOG = Logger.getInstance(DpDebugProcess.class);
+public abstract class DAPDebugProcess extends XDebugProcess {
+    private static final Logger LOG = Logger.getInstance(DAPDebugProcess.class);
 
     private LazyValue<DAP> myDapCache = LazyValue.atomicNotNull(() -> {
         DAP dap = createDAP(Application.get().getInstance(DAPFactory.class));
@@ -48,7 +48,7 @@ public abstract class DpDebugProcess extends XDebugProcess {
 
     private Map<Integer, String> myThreads = new ConcurrentHashMap<>();
 
-    public DpDebugProcess(@Nonnull XDebugSession session) {
+    public DAPDebugProcess(@Nonnull XDebugSession session) {
         super(session);
     }
 
