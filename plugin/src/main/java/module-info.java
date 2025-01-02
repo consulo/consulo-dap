@@ -7,4 +7,6 @@ module consulo.dap {
     requires consulo.execution.debugger.dap;
 
     requires com.google.gson;
+
+    opens consulo.execution.debugger.dap.impl.internal to consulo.proxy;
 }
