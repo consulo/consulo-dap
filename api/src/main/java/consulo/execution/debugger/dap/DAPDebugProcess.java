@@ -61,9 +61,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
     }
 
     @Nonnull
-    protected XLineBreakpointType<?> getLineBreakpointType() {
-        return (XLineBreakpointType<?>) XLineBreakpointType.EXTENSION_POINT_NAME.findFirstSafe(xBreakpointType -> "GoLineBreakpoint".equals(xBreakpointType.getId()));
-    }
+    protected abstract XLineBreakpointType<?> getLineBreakpointType();
 
     @Nonnull
     protected Collection<? extends XLineBreakpoint<?>> getLineBreakpoints() {
