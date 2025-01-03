@@ -24,4 +24,9 @@ public class InitializeRequestArguments {
      * Client supports the `startDebugging` request.
      */
     public Boolean supportsStartDebuggingRequest;
+
+    /**
+     * Client supports the `type` attribute for variables.
+     */
+    public Boolean supportsVariableType = true;
 }
