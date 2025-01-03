@@ -6,9 +6,9 @@ import consulo.execution.debug.XSourcePosition;
 import consulo.execution.debug.XSourcePositionFactory;
 import consulo.execution.debug.frame.XCompositeNode;
 import consulo.execution.debug.frame.XStackFrame;
-import consulo.execution.debug.frame.XValueChildrenList;
 import consulo.execution.debugger.dap.protocol.*;
-import consulo.execution.debugger.dap.value.DAPValue;
+import consulo.execution.debugger.dap.value.DAPValueFactory;
+import consulo.execution.debugger.dap.value.DAPValuePesentation;
 import consulo.ui.ex.ColoredTextContainer;
 import consulo.util.lang.lazy.LazyValue;
 import consulo.virtualFileSystem.LocalFileSystem;
@@ -24,12 +24,14 @@ import java.util.function.Supplier;
  */
 public class DAPStackFrame extends XStackFrame {
     private final DAP myDap;
+    private final DAPValuePesentation myValuePesentation;
     private final StackFrame myStackTrace;
 
     private final Supplier<XSourcePosition> mySourcePositionValue;
 
-    public DAPStackFrame(DAP dap, StackFrame stackTrace) {
+    public DAPStackFrame(DAP dap, DAPValuePesentation valuePesentation, StackFrame stackTrace) {
         myDap = dap;
+        myValuePesentation = valuePesentation;
         myStackTrace = stackTrace;
         mySourcePositionValue = LazyValue.nullable(() -> {
             Source source = myStackTrace.source;
@@ -71,13 +73,7 @@ public class DAPStackFrame extends XStackFrame {
                 for (Scope scope : scopesResult.scopes) {
                     myDap.variables(new VariablesArguments(scope.variablesReference)).whenCompleteAsync((variablesResult, t2) -> {
                         if (variablesResult != null) {
-                            XValueChildrenList children = new XValueChildrenList();
-
-                            for (Variable variable : variablesResult.variables) {
-                                children.add(new DAPValue(variable));
-                            }
-
-                            node.addChildren(children, true);
+                            node.addChildren(DAPValueFactory.build(myDap, myValuePesentation, variablesResult), true);
                         }
                     });
                 }

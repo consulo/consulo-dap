@@ -6,6 +6,7 @@ import consulo.execution.debugger.dap.protocol.DAP;
 import consulo.execution.debugger.dap.protocol.StackTraceArguments;
 import consulo.execution.debugger.dap.protocol.StackTraceResult;
 import consulo.execution.debugger.dap.protocol.Thread;
+import consulo.execution.debugger.dap.value.DAPValuePesentation;
 import jakarta.annotation.Nullable;
 
 import java.util.List;
@@ -20,7 +21,10 @@ public class DAPSuspendContext extends XSuspendContext {
 
     private DAPExecutionStack myActiveStack;
 
-    public DAPSuspendContext(DAP dap, List<Thread> threads, int activeThreadId) throws InterruptedException, ExecutionException {
+    public DAPSuspendContext(DAP dap,
+                             DAPValuePesentation valuePesentation,
+                             List<Thread> threads,
+                             int activeThreadId) throws InterruptedException, ExecutionException {
         myStacks = new DAPExecutionStack[threads.size()];
 
         for (int i = 0; i < threads.size(); i++) {
@@ -31,7 +35,7 @@ public class DAPSuspendContext extends XSuspendContext {
 
             StackTraceResult traceResult = dap.stackTrace(arguments).get();
 
-            DAPExecutionStack executionStack = new DAPExecutionStack(dap, thread, traceResult.stackFrames);
+            DAPExecutionStack executionStack = new DAPExecutionStack(dap, valuePesentation, thread, traceResult.stackFrames);
 
             myStacks[i] = executionStack;
 

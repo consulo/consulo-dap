@@ -15,6 +15,8 @@ import consulo.execution.debug.frame.XExecutionStack;
 import consulo.execution.debug.frame.XSuspendContext;
 import consulo.execution.debugger.dap.protocol.*;
 import consulo.execution.debugger.dap.protocol.event.*;
+import consulo.execution.debugger.dap.value.DAPValuePesentation;
+import consulo.execution.debugger.dap.value.DefaultDAPValuePesentation;
 import consulo.execution.ui.console.ConsoleViewContentType;
 import consulo.logging.Logger;
 import consulo.platform.Platform;
@@ -29,6 +31,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 
 /**
  * @author VISTALL
@@ -52,6 +55,8 @@ public abstract class DAPDebugProcess extends XDebugProcess {
     private final XBreakpointHandler<?>[] myHandlers;
 
     private boolean myBreakpointsInitialized;
+
+    private final Supplier<DAPValuePesentation> myValuePresentation = LazyValue.notNull(this::createPresentation);
 
     public DAPDebugProcess(@Nonnull XDebugSession session) {
         super(session);
@@ -80,6 +85,10 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
     public void start() {
         Application.get().executeOnPooledThread(this::initializeAsync);
+    }
+
+    protected DAPValuePesentation createPresentation() {
+        return new DefaultDAPValuePesentation();
     }
 
     protected void init(DAP dap) {
@@ -151,7 +160,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
         try {
             threads = dap.threads(new ThreadsArguments()).get();
-            context = new DAPSuspendContext(dap, threads.threads, threadId);
+            context = new DAPSuspendContext(dap, myValuePresentation.get(), threads.threads, threadId);
         }
         catch (InterruptedException | ExecutionException e) {
             LOG.warn(e);

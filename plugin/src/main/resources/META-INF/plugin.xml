@@ -2,6 +2,8 @@
     <id>consulo.dap</id>
     <name>Debug Adapter Protocol - API</name>
     <description>Debug Adapter Protocol API &amp; Implementations for plugins</description>
+    <version>SNAPSHOT</version>
+    <vendor>consulo.io</vendor>
     <tags>
         <tag>run.debugger</tag>
     </tags>
