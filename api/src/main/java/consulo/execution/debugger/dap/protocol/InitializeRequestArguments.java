@@ -29,4 +29,14 @@ public class InitializeRequestArguments {
      * Client supports the `type` attribute for variables.
      */
     public Boolean supportsVariableType = true;
+
+    /**
+     * If true all line numbers are 1-based (default).
+     */
+    public Boolean linesStartAt1;
+
+    /**
+     * If true all column numbers are 1-based (default).
+     */
+    public Boolean columnsStartAt1;
 }

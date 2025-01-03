@@ -8,7 +8,6 @@ import consulo.execution.debug.frame.XCompositeNode;
 import consulo.execution.debug.frame.XStackFrame;
 import consulo.execution.debugger.dap.protocol.*;
 import consulo.execution.debugger.dap.value.DAPValueFactory;
-import consulo.execution.debugger.dap.value.DAPValuePesentation;
 import consulo.ui.ex.ColoredTextContainer;
 import consulo.util.lang.lazy.LazyValue;
 import consulo.virtualFileSystem.LocalFileSystem;
@@ -23,15 +22,13 @@ import java.util.function.Supplier;
  * @since 2025-01-02
  */
 public class DAPStackFrame extends XStackFrame {
-    private final DAP myDap;
-    private final DAPValuePesentation myValuePesentation;
+    private final DAPContext myContext;
     private final StackFrame myStackTrace;
-
     private final Supplier<XSourcePosition> mySourcePositionValue;
 
-    public DAPStackFrame(DAP dap, DAPValuePesentation valuePesentation, StackFrame stackTrace) {
-        myDap = dap;
-        myValuePesentation = valuePesentation;
+    public DAPStackFrame(DAPContext context,
+                         StackFrame stackTrace) {
+        myContext = context;
         myStackTrace = stackTrace;
         mySourcePositionValue = LazyValue.nullable(() -> {
             Source source = myStackTrace.source;
@@ -50,7 +47,12 @@ public class DAPStackFrame extends XStackFrame {
                     return null;
                 }
 
-                return Application.get().getInstance(XSourcePositionFactory.class).createPosition(file, myStackTrace.line, myStackTrace.column);
+                XSourcePositionFactory factory = Application.get().getInstance(XSourcePositionFactory.class);
+                
+                return factory.createPosition(file,
+                    context.lineMapper().fromDAP(myStackTrace.line),
+                    context.columnMapper().fromDAP(myStackTrace.column)
+                );
             });
         });
     }
@@ -68,12 +70,14 @@ public class DAPStackFrame extends XStackFrame {
 
     @Override
     public void computeChildren(@Nonnull XCompositeNode node) {
-        myDap.scopes(new ScopesArguments(myStackTrace.id)).whenCompleteAsync((scopesResult, t) -> {
+        DAP dap = myContext.dap();
+
+        dap.scopes(new ScopesArguments(myStackTrace.id)).whenCompleteAsync((scopesResult, t) -> {
             if (scopesResult != null) {
                 for (Scope scope : scopesResult.scopes) {
-                    myDap.variables(new VariablesArguments(scope.variablesReference)).whenCompleteAsync((variablesResult, t2) -> {
+                    dap.variables(new VariablesArguments(scope.variablesReference)).whenCompleteAsync((variablesResult, t2) -> {
                         if (variablesResult != null) {
-                            node.addChildren(DAPValueFactory.build(myDap, myValuePesentation, variablesResult), true);
+                            node.addChildren(DAPValueFactory.build(dap, myContext.valuePesentation(), variablesResult), true);
                         }
                     });
                 }

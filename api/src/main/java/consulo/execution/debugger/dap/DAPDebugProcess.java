@@ -58,6 +58,11 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
     private final Supplier<DAPValuePesentation> myValuePresentation = LazyValue.notNull(this::createPresentation);
 
+    private InitializeRequestArguments myInitializeRequestArguments = new InitializeRequestArguments();
+
+    private SourceCodeMapper myLineMapper = SourceCodeMapper.ZERO_BASED;
+    private SourceCodeMapper myColumnMapper = SourceCodeMapper.ZERO_BASED;
+
     public DAPDebugProcess(@Nonnull XDebugSession session) {
         super(session);
 
@@ -94,8 +99,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
     protected void init(DAP dap) {
         dap.registerEvent(CapabilitiesEvent.class, c -> {
             merge(capabilities, c);
-
-            onUpdateCapabilities(capabilities);
+            onUpdateCapabilities(myInitializeRequestArguments, capabilities);
         });
 
         dap.registerEvent(InitializedEvent.class, o -> onInitialized());
@@ -156,11 +160,12 @@ public abstract class DAPDebugProcess extends XDebugProcess {
         DAP dap = myDapCache.get();
 
         ThreadsResult threads;
-        DAPSuspendContext context;
+        DAPSuspendContext suspendContext;
+        DAPContext context = new DAPContext(dap, myValuePresentation.get(), myLineMapper, myColumnMapper);
 
         try {
             threads = dap.threads(new ThreadsArguments()).get();
-            context = new DAPSuspendContext(dap, myValuePresentation.get(), threads.threads, threadId);
+            suspendContext = new DAPSuspendContext(context, threads.threads, threadId);
         }
         catch (InterruptedException | ExecutionException e) {
             LOG.warn(e);
@@ -168,10 +173,10 @@ public abstract class DAPDebugProcess extends XDebugProcess {
         }
 
         if (breakpoint != null) {
-            getSession().breakpointReached(breakpoint, null, context);
+            getSession().breakpointReached(breakpoint, null, suspendContext);
         }
         else {
-            getSession().positionReached(context);
+            getSession().positionReached(suspendContext);
         }
     }
 
@@ -254,7 +259,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
         for (XLineBreakpoint<?> breakpoint : result) {
             SourceBreakpoint sourceBreakpoint = new SourceBreakpoint();
-            sourceBreakpoint.line = breakpoint.getLine();
+            sourceBreakpoint.line = myLineMapper.toDAP(breakpoint.getLine());
 
             sourceBreakpoints.add(sourceBreakpoint);
         }
@@ -297,7 +302,20 @@ public abstract class DAPDebugProcess extends XDebugProcess {
         getSession().getConsoleView().print(event.output, ConsoleViewContentType.LOG_INFO_OUTPUT);
     }
 
-    protected void onUpdateCapabilities(Capabilities capabilities) {
+    protected void onUpdateCapabilities(InitializeRequestArguments arguments, Capabilities capabilities) {
+        if (arguments.linesStartAt1 == null || arguments.linesStartAt1) {
+            myLineMapper = SourceCodeMapper.ONE_BASED;
+        }
+        else {
+            myLineMapper = SourceCodeMapper.ZERO_BASED;
+        }
+
+        if (arguments.columnsStartAt1 == null || arguments.columnsStartAt1) {
+            myColumnMapper = SourceCodeMapper.ONE_BASED;
+        }
+        else {
+            myColumnMapper = SourceCodeMapper.ZERO_BASED;
+        }
     }
 
     private static void merge(Object to, Object from) {
@@ -322,7 +340,10 @@ public abstract class DAPDebugProcess extends XDebugProcess {
     private void initializeAsync() {
         DAP dap = myDapCache.get();
 
-        InitializeRequestArguments arguments = new InitializeRequestArguments();
+        InitializeRequestArguments arguments = createInitializeRequestArguments();
+
+        merge(myInitializeRequestArguments, arguments);
+
         String ideName = Application.get().getName().get();
 
         arguments.clientID = ideName;
@@ -333,7 +354,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
             if (res != null) {
                 merge(capabilities, res);
 
-                onUpdateCapabilities(capabilities);
+                onUpdateCapabilities(arguments, capabilities);
 
                 LaunchRequestArguments launch = createLaunchRequestArguments();
 
@@ -354,6 +375,13 @@ public abstract class DAPDebugProcess extends XDebugProcess {
         LaunchRequestArguments launch = new LaunchRequestArguments();
         launch.env = Platform.current().os().environmentVariables();
         return launch;
+    }
+
+    protected InitializeRequestArguments createInitializeRequestArguments() {
+        InitializeRequestArguments arguments = new InitializeRequestArguments();
+        arguments.linesStartAt1 = true;
+        arguments.columnsStartAt1 = true;
+        return arguments;
     }
 
     @Nonnull
