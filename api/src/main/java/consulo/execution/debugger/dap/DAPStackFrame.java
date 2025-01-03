@@ -6,8 +6,9 @@ import consulo.execution.debug.XSourcePosition;
 import consulo.execution.debug.XSourcePositionFactory;
 import consulo.execution.debug.frame.XCompositeNode;
 import consulo.execution.debug.frame.XStackFrame;
-import consulo.execution.debugger.dap.protocol.Source;
-import consulo.execution.debugger.dap.protocol.StackFrame;
+import consulo.execution.debug.frame.XValueChildrenList;
+import consulo.execution.debugger.dap.protocol.*;
+import consulo.execution.debugger.dap.value.DAPValue;
 import consulo.ui.ex.ColoredTextContainer;
 import consulo.util.lang.lazy.LazyValue;
 import consulo.virtualFileSystem.LocalFileSystem;
@@ -22,11 +23,13 @@ import java.util.function.Supplier;
  * @since 2025-01-02
  */
 public class DAPStackFrame extends XStackFrame {
+    private final DAP myDap;
     private final StackFrame myStackTrace;
 
     private final Supplier<XSourcePosition> mySourcePositionValue;
 
-    public DAPStackFrame(StackFrame stackTrace) {
+    public DAPStackFrame(DAP dap, StackFrame stackTrace) {
+        myDap = dap;
         myStackTrace = stackTrace;
         mySourcePositionValue = LazyValue.nullable(() -> {
             Source source = myStackTrace.source;
@@ -63,6 +66,22 @@ public class DAPStackFrame extends XStackFrame {
 
     @Override
     public void computeChildren(@Nonnull XCompositeNode node) {
-        super.computeChildren(node);
+        myDap.scopes(new ScopesArguments(myStackTrace.id)).whenCompleteAsync((scopesResult, t) -> {
+            if (scopesResult != null) {
+                for (Scope scope : scopesResult.scopes) {
+                    myDap.variables(new VariablesArguments(scope.variablesReference)).whenCompleteAsync((variablesResult, t2) -> {
+                        if (variablesResult != null) {
+                            XValueChildrenList children = new XValueChildrenList();
+
+                            for (Variable variable : variablesResult.variables) {
+                                children.add(new DAPValue(variable));
+                            }
+
+                            node.addChildren(children, true);
+                        }
+                    });
+                }
+            }
+        });
     }
 }

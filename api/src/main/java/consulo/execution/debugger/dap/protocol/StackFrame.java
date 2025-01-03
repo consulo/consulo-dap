@@ -1,5 +1,7 @@
 package consulo.execution.debugger.dap.protocol;
 
+import java.util.Objects;
+
 /**
  * @author VISTALL
  * @since 2024-12-22
@@ -75,4 +77,21 @@ public class StackFrame {
      * Values: 'normal', 'label', 'subtle'
      */
     public String presentationHint;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        StackFrame that = (StackFrame) o;
+        return id == that.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }

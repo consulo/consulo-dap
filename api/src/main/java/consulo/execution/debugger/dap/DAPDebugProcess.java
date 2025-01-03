@@ -1,12 +1,16 @@
 package consulo.execution.debugger.dap;
 
 import consulo.application.Application;
+import consulo.application.ReadAction;
 import consulo.application.progress.Task;
 import consulo.component.ProcessCanceledException;
 import consulo.execution.debug.XDebugProcess;
 import consulo.execution.debug.XDebugSession;
+import consulo.execution.debug.XDebuggerManager;
 import consulo.execution.debug.breakpoint.XBreakpoint;
+import consulo.execution.debug.breakpoint.XBreakpointHandler;
 import consulo.execution.debug.breakpoint.XLineBreakpoint;
+import consulo.execution.debug.breakpoint.XLineBreakpointType;
 import consulo.execution.debug.frame.XExecutionStack;
 import consulo.execution.debug.frame.XSuspendContext;
 import consulo.execution.debugger.dap.protocol.*;
@@ -22,10 +26,7 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
@@ -36,7 +37,7 @@ import java.util.concurrent.ExecutionException;
 public abstract class DAPDebugProcess extends XDebugProcess {
     private static final Logger LOG = Logger.getInstance(DAPDebugProcess.class);
 
-    private LazyValue<DAP> myDapCache = LazyValue.atomicNotNull(() -> {
+    private final LazyValue<DAP> myDapCache = LazyValue.atomicNotNull(() -> {
         DAP dap = createDAP(Application.get().getInstance(DAPFactory.class));
         init(dap);
         return dap;
@@ -48,8 +49,31 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
     private Map<Integer, String> myThreads = new ConcurrentHashMap<>();
 
+    private final XBreakpointHandler<?>[] myHandlers;
+
+    private boolean myBreakpointsInitialized;
+
     public DAPDebugProcess(@Nonnull XDebugSession session) {
         super(session);
+
+        Class<? extends XLineBreakpointType> lineBreakpointType = getLineBreakpointType().getClass();
+        myHandlers = new XBreakpointHandler[]{new DAPLineBreakpointHandler(lineBreakpointType, this)};
+    }
+
+    @Nonnull
+    protected XLineBreakpointType<?> getLineBreakpointType() {
+        return (XLineBreakpointType<?>) XLineBreakpointType.EXTENSION_POINT_NAME.findFirstSafe(xBreakpointType -> "GoLineBreakpoint".equals(xBreakpointType.getId()));
+    }
+
+    @Nonnull
+    protected Collection<? extends XLineBreakpoint<?>> getLineBreakpoints() {
+        return XDebuggerManager.getInstance(getSession().getProject()).getBreakpointManager().getBreakpoints(getLineBreakpointType());
+    }
+
+    @Nonnull
+    @Override
+    public XBreakpointHandler<?>[] getBreakpointHandlers() {
+        return myHandlers;
     }
 
     protected abstract DAP createDAP(DAPFactory factory);
@@ -59,9 +83,6 @@ public abstract class DAPDebugProcess extends XDebugProcess {
     public void start() {
         Application.get().executeOnPooledThread(this::initializeAsync);
     }
-
-    @Nonnull
-    protected abstract Collection<? extends XLineBreakpoint<?>> getLineBreakpoints();
 
     protected void init(DAP dap) {
         dap.registerEvent(CapabilitiesEvent.class, c -> {
@@ -148,7 +169,11 @@ public abstract class DAPDebugProcess extends XDebugProcess {
     }
 
     protected void onInitialized() {
-        registerBreakpoints(myDapCache.get());
+        ReadAction.run(() -> {
+            getSession().initBreakpoints();
+            registerBreakpointsInBatch();
+            myBreakpointsInitialized = true;
+        });
     }
 
     protected void onBreakpoint(BreakpointEvent event) {
@@ -165,11 +190,12 @@ public abstract class DAPDebugProcess extends XDebugProcess {
             case "new":
                 break;
             case "removed":
+                System.out.println("test");
                 break;
         }
     }
 
-    protected void registerBreakpoints(DAP dap) {
+    private void registerBreakpointsInBatch() {
         Collection<? extends XLineBreakpoint<?>> breakpoints = getLineBreakpoints();
         if (breakpoints.isEmpty()) {
             return;
@@ -183,42 +209,67 @@ public abstract class DAPDebugProcess extends XDebugProcess {
         }
 
         for (Map.Entry<String, Collection<XLineBreakpoint<?>>> entry : map.entrySet()) {
-            String filePath = entry.getKey();
-            // copy - do not lose order
-            List<XLineBreakpoint<?>> result = new ArrayList<>(entry.getValue());
-
-            SetBreakpointsArguments arguments = new SetBreakpointsArguments();
-            arguments.source = new Source();
-            arguments.source.path = filePath;
-
-            List<SourceBreakpoint> sourceBreakpoints = new ArrayList<>(result.size());
-
-            for (XLineBreakpoint<?> breakpoint : result) {
-                SourceBreakpoint sourceBreakpoint = new SourceBreakpoint();
-                sourceBreakpoint.line = breakpoint.getLine();
-
-                sourceBreakpoints.add(sourceBreakpoint);
-            }
-
-            arguments.breakpoints = sourceBreakpoints.toArray(SourceBreakpoint[]::new);
-
-            dap.setBreakpoints(arguments).whenCompleteAsync((setBreakpointsResult, t) -> {
-                if (t != null) {
-                    LOG.warn(t);
-                }
-                else if (setBreakpointsResult != null) {
-                    for (int i = 0; i < result.size(); i++) {
-                        Breakpoint breakpoint = setBreakpointsResult.breakpoints[i];
-
-                        XLineBreakpoint<?> lineBreakpoint = result.get(i);
-
-                        myBreakpointMapping.put(breakpoint.id, lineBreakpoint);
-
-                        updateBreakpointState(lineBreakpoint, breakpoint);
-                    }
-                }
-            });
+            registerBreakpoints(entry.getKey(), entry.getValue());
         }
+    }
+
+    protected void updateBreakpoints(XLineBreakpoint<?> breakpoint, boolean remove) {
+        if (!myBreakpointsInitialized) {
+            return;
+        }
+
+        if (remove) {
+            myBreakpointMapping.values().remove(breakpoint);
+        }
+        
+        String path = breakpoint.getPresentableFilePath();
+
+        Collection<? extends XLineBreakpoint<?>> breakpoints = getLineBreakpoints();
+
+        List<? extends XLineBreakpoint<?>> byPath = breakpoints
+            .stream()
+            .filter(it -> Objects.equals(it.getPresentableFilePath(), path))
+            .toList();
+
+        registerBreakpoints(path, byPath);
+    }
+
+    protected void registerBreakpoints(String filePath, Collection<? extends XLineBreakpoint<?>> breakpoints) {
+        DAP dap = myDapCache.get();
+
+        List<XLineBreakpoint<?>> result = new ArrayList<>(breakpoints);
+
+        SetBreakpointsArguments arguments = new SetBreakpointsArguments();
+        arguments.source = new Source();
+        arguments.source.path = filePath;
+
+        List<SourceBreakpoint> sourceBreakpoints = new ArrayList<>(result.size());
+
+        for (XLineBreakpoint<?> breakpoint : result) {
+            SourceBreakpoint sourceBreakpoint = new SourceBreakpoint();
+            sourceBreakpoint.line = breakpoint.getLine();
+
+            sourceBreakpoints.add(sourceBreakpoint);
+        }
+
+        arguments.breakpoints = sourceBreakpoints.toArray(SourceBreakpoint[]::new);
+
+        dap.setBreakpoints(arguments).whenCompleteAsync((setBreakpointsResult, t) -> {
+            if (t != null) {
+                LOG.warn(t);
+            }
+            else if (setBreakpointsResult != null) {
+                for (int i = 0; i < result.size(); i++) {
+                    Breakpoint breakpoint = setBreakpointsResult.breakpoints[i];
+
+                    XLineBreakpoint<?> lineBreakpoint = result.get(i);
+
+                    myBreakpointMapping.put(breakpoint.id, lineBreakpoint);
+
+                    updateBreakpointState(lineBreakpoint, breakpoint);
+                }
+            }
+        });
     }
 
     protected void updateBreakpointState(XLineBreakpoint<?> lineBreakpoint, Breakpoint breakpoint) {
@@ -300,7 +351,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
     @Nonnull
     protected ConfigurationDoneArguments createConfigurationDoneArguments() {
-            return new ConfigurationDoneArguments();
+        return new ConfigurationDoneArguments();
     }
 
     @Override

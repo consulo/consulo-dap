@@ -3,6 +3,7 @@ package consulo.execution.debugger.dap.impl.internal;
 import com.google.gson.Gson;
 import consulo.execution.debugger.dap.protocol.DAP;
 import consulo.execution.debugger.dap.protocol.Event;
+import consulo.logging.Logger;
 import consulo.util.io.UnsyncByteArrayInputStream;
 import consulo.util.io.UnsyncByteArrayOutputStream;
 import jakarta.annotation.Nonnull;
@@ -28,6 +29,8 @@ import java.util.function.Supplier;
  * @since 2024-12-21
  */
 public abstract class DAPImpl implements DAP {
+    private static final Logger LOG = Logger.getInstance(DAPImpl.class);
+
     protected record Request(CompletableFuture future, Type result) {
     }
 
@@ -83,6 +86,8 @@ public abstract class DAPImpl implements DAP {
             write(buff.toByteArray());
         }
         catch (IOException e) {
+            LOG.warn(e);
+
             myRequestFutures.remove(seq);
 
             future.completeExceptionally(e);

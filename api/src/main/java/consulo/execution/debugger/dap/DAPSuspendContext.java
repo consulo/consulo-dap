@@ -31,7 +31,7 @@ public class DAPSuspendContext extends XSuspendContext {
 
             StackTraceResult traceResult = dap.stackTrace(arguments).get();
 
-            DAPExecutionStack executionStack = new DAPExecutionStack(thread, traceResult.stackFrames);
+            DAPExecutionStack executionStack = new DAPExecutionStack(dap, thread, traceResult.stackFrames);
 
             myStacks[i] = executionStack;
 
