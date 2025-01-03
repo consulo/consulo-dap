@@ -221,7 +221,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
         if (remove) {
             myBreakpointMapping.values().remove(breakpoint);
         }
-        
+
         String path = breakpoint.getPresentableFilePath();
 
         Collection<? extends XLineBreakpoint<?>> breakpoints = getLineBreakpoints();
@@ -360,10 +360,9 @@ public abstract class DAPDebugProcess extends XDebugProcess {
         if (context != null) {
             XExecutionStack stack = context.getActiveExecutionStack();
 
-            // TODO !
-//            if (stack instanceof DotNetExecutionStack dotNetExecutionStack) {
-//                arguments.threadId = (int) dotNetExecutionStack.getThreadProxy().getId();
-//            }
+            if (stack instanceof DAPExecutionStack dapStack) {
+                arguments.threadId = dapStack.getThreadId();
+            }
         }
 
         myDapCache.get().continue_(arguments);

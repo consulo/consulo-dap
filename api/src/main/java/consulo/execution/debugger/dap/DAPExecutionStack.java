@@ -18,14 +18,22 @@ public class DAPExecutionStack extends XExecutionStack {
 
     private boolean myFilled;
 
+    private int myThreadId;
+
     public DAPExecutionStack(DAP dap, Thread thread, StackFrame[] stackTraces) {
         super(thread.name);
+
+        myThreadId = thread.id;
 
         myStackTraces = new DAPStackFrame[stackTraces.length];
 
         for (int i = 0; i < stackTraces.length; i++) {
             myStackTraces[i] = new DAPStackFrame(dap, stackTraces[i]);
         }
+    }
+
+    public int getThreadId() {
+        return myThreadId;
     }
 
     @Nullable
