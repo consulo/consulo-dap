@@ -169,7 +169,7 @@ public abstract class SocketDAPImpl extends DAPImpl {
         if (mySocket == null) {
             Socket socket = null;
             IOException lastException = null;
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 10; i++) {
                 try {
                     Socket tempSocket = new Socket();
                     tempSocket.setKeepAlive(true);
