@@ -15,7 +15,7 @@ public class DAPValueFactory {
         if (valuePresentation.hasChildren(variable)) {
             return new DAPObjectValue(dap, valuePresentation, variable);
         }
-        return new DAPPrimitiveValue(valuePresentation, variable);
+        return new DAPPrimitiveValue(dap, valuePresentation, variable);
     }
 
     public static XValueChildrenList build(DAP dap, DAPValuePresentation valuePresentation, VariablesResult variablesResult) {

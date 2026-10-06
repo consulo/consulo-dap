@@ -141,7 +141,12 @@ public class DAPStackFrame extends XStackFrame {
                         continue;
                     }
                     VariablesResult result = future.getNow(null);
-                    if (result != null) {
+                    if (result != null && result.variables != null) {
+                        for (Variable variable : result.variables) {
+                            if (variable.evaluateName == null) {
+                                variable.evaluateName = variable.name;
+                            }
+                        }
                         XValueChildrenList scopeChildren = DAPValueFactory.build(dap, myContext.valuePresentation(), result);
                         for (int i = 0; i < scopeChildren.size(); i++) {
                             children.add(scopeChildren.getName(i), scopeChildren.getValue(i));

@@ -4,6 +4,7 @@ import consulo.execution.debug.frame.XNamedValue;
 import consulo.execution.debug.frame.XNavigatable;
 import consulo.execution.debug.frame.XValueNode;
 import consulo.execution.debug.frame.XValuePlace;
+import consulo.execution.debugger.dap.protocol.DAP;
 import consulo.execution.debugger.dap.protocol.Variable;
 import jakarta.annotation.Nonnull;
 
@@ -13,12 +14,15 @@ import jakarta.annotation.Nonnull;
  */
 public class DAPPrimitiveValue extends XNamedValue {
     @Nonnull
+    private final DAP myDap;
+    @Nonnull
     private final DAPValuePresentation myValuePresentation;
     @Nonnull
     private final Variable myVariable;
 
-    public DAPPrimitiveValue(@Nonnull DAPValuePresentation valuePresentation, @Nonnull Variable variable) {
+    public DAPPrimitiveValue(@Nonnull DAP dap, @Nonnull DAPValuePresentation valuePresentation, @Nonnull Variable variable) {
         super(variable.name);
+        myDap = dap;
         myValuePresentation = valuePresentation;
         myVariable = variable;
     }
@@ -26,6 +30,16 @@ public class DAPPrimitiveValue extends XNamedValue {
     @Override
     public void computePresentation(@Nonnull XValueNode node, @Nonnull XValuePlace place) {
         myValuePresentation.setPresentation(node, myVariable);
+    }
+
+    @Override
+    public boolean canNavigateToSource() {
+        return myValuePresentation.canNavigateToSource(myVariable);
+    }
+
+    @Override
+    public void computeSourcePosition(@Nonnull XNavigatable navigatable) {
+        myValuePresentation.computeSourcePosition(myDap, navigatable, myVariable);
     }
 
     @Override

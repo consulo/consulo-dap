@@ -18,4 +18,5 @@ module consulo.execution.debugger.dap {
     exports consulo.execution.debugger.dap;
     exports consulo.execution.debugger.dap.protocol;
     exports consulo.execution.debugger.dap.protocol.event;
+    exports consulo.execution.debugger.dap.value;
 }

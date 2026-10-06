@@ -40,6 +40,16 @@ public class DAPObjectValue extends XNamedValue {
     }
 
     @Override
+    public boolean canNavigateToSource() {
+        return myValuePresentation.canNavigateToSource(myVariable);
+    }
+
+    @Override
+    public void computeSourcePosition(@Nonnull XNavigatable navigatable) {
+        myValuePresentation.computeSourcePosition(myDap, navigatable, myVariable);
+    }
+
+    @Override
     public boolean canNavigateToTypeSource() {
         return myValuePresentation.canNavigateToTypeSource(myVariable);
     }

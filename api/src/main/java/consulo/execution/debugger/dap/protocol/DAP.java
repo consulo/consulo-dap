@@ -70,6 +70,9 @@ public interface DAP {
     CompletableFuture<SetBreakpointsResult> setFunctionBreakpoints(SetFunctionBreakpointsArguments arguments);
 
     @Nonnull
+    CompletableFuture<LocationsResult> locations(LocationsArguments arguments);
+
+    @Nonnull
     CompletableFuture<Object> disconnect(DisconnectArguments arguments);
 
     @Nonnull

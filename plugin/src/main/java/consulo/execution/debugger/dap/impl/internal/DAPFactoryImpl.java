@@ -4,6 +4,7 @@ import consulo.annotation.component.ServiceImpl;
 import consulo.application.concurrent.ApplicationConcurrency;
 import consulo.execution.debugger.dap.protocol.DAP;
 import consulo.execution.debugger.dap.protocol.DAPFactory;
+import consulo.process.ProcessHandler;
 import consulo.proxy.advanced.AdvancedProxyBuilder;
 import jakarta.annotation.Nonnull;
 import jakarta.inject.Inject;
@@ -34,6 +35,7 @@ public class DAPFactoryImpl implements DAPFactory {
             .withSuperConstructorArguments(host, port)
             .build();
         dap.setEventExecutor(myConcurrency.createBoundedApplicationPoolExecutor("DAP Events", myConcurrency.executor(), 1));
+        dap.setReaderExecutor(myConcurrency.createBoundedApplicationPoolExecutor("DAP Reader", myConcurrency.executor(), 1));
         return dap;
     }
 
@@ -44,7 +46,19 @@ public class DAPFactoryImpl implements DAPFactory {
             .withInvocationHandler(new DAPInvocationHandler())
             .build();
         dap.setEventExecutor(myConcurrency.createBoundedApplicationPoolExecutor("DAP Events", myConcurrency.executor(), 1));
+        dap.setReaderExecutor(myConcurrency.createBoundedApplicationPoolExecutor("DAP Reader", myConcurrency.executor(), 1));
         dap.startStreams(input, output);
+        return dap;
+    }
+
+    @Nonnull
+    @Override
+    public DAP createProcessDAP(ProcessHandler processHandler) {
+        ProcessDAPImpl dap = AdvancedProxyBuilder.create(ProcessDAPImpl.class)
+            .withInvocationHandler(new DAPInvocationHandler())
+            .build();
+        dap.setEventExecutor(myConcurrency.createBoundedApplicationPoolExecutor("DAP Events", myConcurrency.executor(), 1));
+        dap.startProcess(processHandler);
         return dap;
     }
 }

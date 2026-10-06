@@ -45,6 +45,7 @@ public class StreamDAPImplTest {
 
     private final BlockingQueue<Object> myEvents = new LinkedBlockingQueue<>();
     private ExecutorService myEventExecutor;
+    private ExecutorService myReaderExecutor;
     private Process myAdapter;
     private StreamDAPImpl myDap;
 
@@ -81,6 +82,9 @@ public class StreamDAPImplTest {
         }
         if (myEventExecutor != null) {
             myEventExecutor.shutdownNow();
+        }
+        if (myReaderExecutor != null) {
+            myReaderExecutor.shutdownNow();
         }
     }
 
@@ -186,8 +190,10 @@ public class StreamDAPImplTest {
     private void start() throws IOException {
         myAdapter = new ProcessBuilder("gdb", "-q", "-nx", "-i=dap").redirectError(ProcessBuilder.Redirect.DISCARD).start();
         myEventExecutor = Executors.newSingleThreadExecutor();
+        myReaderExecutor = Executors.newSingleThreadExecutor();
         myDap = createDap();
         myDap.setEventExecutor(myEventExecutor);
+        myDap.setReaderExecutor(myReaderExecutor);
         myDap.registerEvent(InitializedEvent.class, event -> myEvents.add(new InitializedEvent()));
         myDap.registerEvent(StoppedEvent.class, myEvents::add);
         myDap.registerEvent(BreakpointEvent.class, myEvents::add);

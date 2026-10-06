@@ -2,6 +2,7 @@ package consulo.execution.debugger.dap.protocol;
 
 import consulo.annotation.component.ComponentScope;
 import consulo.annotation.component.ServiceAPI;
+import consulo.process.ProcessHandler;
 import jakarta.annotation.Nonnull;
 
 import java.io.InputStream;
@@ -18,4 +19,7 @@ public interface DAPFactory {
 
     @Nonnull
     DAP createStreamDAP(InputStream input, OutputStream output);
+
+    @Nonnull
+    DAP createProcessDAP(ProcessHandler processHandler);
 }
