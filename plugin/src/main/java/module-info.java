@@ -3,6 +3,7 @@
  * @since 24/01/2023
  */
 module consulo.dap {
+    requires consulo.application.api;
     requires consulo.execution.debug.api;
     requires consulo.execution.debugger.dap;
     requires consulo.logging.api;

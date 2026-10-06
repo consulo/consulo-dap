@@ -46,6 +46,36 @@ public interface DAP {
     CompletableFuture<ThreadsResult> threads(ThreadsArguments arguments);
 
     @Nonnull
+    CompletableFuture<Object> attach(AttachRequestArguments arguments);
+
+    @Nonnull
+    CompletableFuture<Object> next(NextArguments arguments);
+
+    @Nonnull
+    CompletableFuture<Object> stepIn(StepInArguments arguments);
+
+    @Nonnull
+    CompletableFuture<Object> stepOut(StepOutArguments arguments);
+
+    @Nonnull
+    CompletableFuture<EvaluateResult> evaluate(EvaluateArguments arguments);
+
+    @Nonnull
+    CompletableFuture<DisassembleResult> disassemble(DisassembleArguments arguments);
+
+    @Nonnull
+    CompletableFuture<ReadMemoryResult> readMemory(ReadMemoryArguments arguments);
+
+    @Nonnull
+    CompletableFuture<SetBreakpointsResult> setFunctionBreakpoints(SetFunctionBreakpointsArguments arguments);
+
+    @Nonnull
+    CompletableFuture<Object> disconnect(DisconnectArguments arguments);
+
+    @Nonnull
+    CompletableFuture<Object> terminate(TerminateArguments arguments);
+
+    @Nonnull
     @ImplMethod
     <R> CompletableFuture<R> request(@Nonnull String requestName, @Nonnull Object arguments, @Nonnull Class<R> resultClass);
 

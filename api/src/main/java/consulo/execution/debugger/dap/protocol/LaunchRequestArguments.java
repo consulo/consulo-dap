@@ -21,5 +21,6 @@ public class LaunchRequestArguments {
 
     // this parameters for launching program from launch command
     public String program;
+    public String cwd;
     public String[] args;
 }

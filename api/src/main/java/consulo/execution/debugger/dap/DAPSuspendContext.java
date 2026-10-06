@@ -2,14 +2,11 @@ package consulo.execution.debugger.dap;
 
 import consulo.execution.debug.frame.XExecutionStack;
 import consulo.execution.debug.frame.XSuspendContext;
-import consulo.execution.debugger.dap.protocol.DAP;
-import consulo.execution.debugger.dap.protocol.StackTraceArguments;
-import consulo.execution.debugger.dap.protocol.StackTraceResult;
+import consulo.execution.debugger.dap.protocol.StackFrame;
 import consulo.execution.debugger.dap.protocol.Thread;
 import jakarta.annotation.Nullable;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author VISTALL
@@ -17,29 +14,16 @@ import java.util.concurrent.ExecutionException;
  */
 public class DAPSuspendContext extends XSuspendContext {
     private final DAPExecutionStack[] myStacks;
-
     private DAPExecutionStack myActiveStack;
 
-    public DAPSuspendContext(DAPContext context,
-                             List<Thread> threads,
-                             int activeThreadId) throws InterruptedException, ExecutionException {
+    public DAPSuspendContext(DAPContext context, List<Thread> threads, int activeThreadId, @Nullable StackFrame[] activeFrames) {
         myStacks = new DAPExecutionStack[threads.size()];
-
-        DAP dap = context.dap();
-
         for (int i = 0; i < threads.size(); i++) {
             Thread thread = threads.get(i);
-
-            StackTraceArguments arguments = new StackTraceArguments();
-            arguments.threadId = thread.id;
-
-            StackTraceResult traceResult = dap.stackTrace(arguments).get();
-
-            DAPExecutionStack executionStack = new DAPExecutionStack(context, thread, traceResult.stackFrames);
-
+            boolean active = thread.id == activeThreadId;
+            DAPExecutionStack executionStack = new DAPExecutionStack(context, thread, active ? activeFrames : null);
             myStacks[i] = executionStack;
-
-            if (thread.id == activeThreadId) {
+            if (active) {
                 myActiveStack = executionStack;
             }
         }

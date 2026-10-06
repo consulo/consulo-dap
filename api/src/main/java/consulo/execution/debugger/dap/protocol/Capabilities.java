@@ -5,32 +5,27 @@ package consulo.execution.debugger.dap.protocol;
  * @since 2024-12-21
  */
 public class Capabilities {
-    /**
-     * The debug adapter supports the `configurationDone` request.
-     */
     public Boolean supportsConfigurationDoneRequest;
-    /**
-     * The debug adapter supports function breakpoints.
-     */
     public Boolean supportsFunctionBreakpoints;
-    /**
-     * The debug adapter supports conditional breakpoints.
-     */
     public Boolean supportsConditionalBreakpoints;
-    /**
-     * The debug adapter supports breakpoints that break execution after a
-     * specified number of hits.
-     */
     public Boolean supportsHitConditionalBreakpoints;
-    /**
-     * The debug adapter supports a (side effect free) `evaluate` request for data
-     * hovers.
-     */
     public Boolean supportsEvaluateForHovers;
-    /**
-     * The debug adapter supports the `terminate` request.
-     */
     public Boolean supportsTerminateRequest;
+    public Boolean supportsLogPoints;
+    public Boolean supportsSteppingGranularity;
+    public Boolean supportsInstructionBreakpoints;
+    public Boolean supportsDisassembleRequest;
+    public Boolean supportsReadMemoryRequest;
+    public Boolean supportsWriteMemoryRequest;
+    public Boolean supportsDataBreakpoints;
+    public Boolean supportsSetVariable;
+    public Boolean supportsRestartRequest;
+    public Boolean supportsExceptionInfoRequest;
+    public Boolean supportsModulesRequest;
+    public Boolean supportsCompletionsRequest;
+    public Boolean supportsSingleThreadExecutionRequests;
+    public Boolean supportsGotoTargetsRequest;
+    public Boolean supportsCancelRequest;
 
     @Override
     public String toString() {
@@ -41,6 +36,21 @@ public class Capabilities {
             ", supportsHitConditionalBreakpoints=" + supportsHitConditionalBreakpoints +
             ", supportsEvaluateForHovers=" + supportsEvaluateForHovers +
             ", supportsTerminateRequest=" + supportsTerminateRequest +
+            ", supportsLogPoints=" + supportsLogPoints +
+            ", supportsSteppingGranularity=" + supportsSteppingGranularity +
+            ", supportsInstructionBreakpoints=" + supportsInstructionBreakpoints +
+            ", supportsDisassembleRequest=" + supportsDisassembleRequest +
+            ", supportsReadMemoryRequest=" + supportsReadMemoryRequest +
+            ", supportsWriteMemoryRequest=" + supportsWriteMemoryRequest +
+            ", supportsDataBreakpoints=" + supportsDataBreakpoints +
+            ", supportsSetVariable=" + supportsSetVariable +
+            ", supportsRestartRequest=" + supportsRestartRequest +
+            ", supportsExceptionInfoRequest=" + supportsExceptionInfoRequest +
+            ", supportsModulesRequest=" + supportsModulesRequest +
+            ", supportsCompletionsRequest=" + supportsCompletionsRequest +
+            ", supportsSingleThreadExecutionRequests=" + supportsSingleThreadExecutionRequests +
+            ", supportsGotoTargetsRequest=" + supportsGotoTargetsRequest +
+            ", supportsCancelRequest=" + supportsCancelRequest +
             '}';
     }
 }

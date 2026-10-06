@@ -13,30 +13,30 @@ import jakarta.annotation.Nonnull;
  */
 public class DAPPrimitiveValue extends XNamedValue {
     @Nonnull
-    private final DAPValuePesentation myValuePesentation;
+    private final DAPValuePresentation myValuePresentation;
     @Nonnull
     private final Variable myVariable;
 
-    public DAPPrimitiveValue(@Nonnull DAPValuePesentation valuePesentation, @Nonnull Variable variable) {
+    public DAPPrimitiveValue(@Nonnull DAPValuePresentation valuePresentation, @Nonnull Variable variable) {
         super(variable.name);
-        myValuePesentation = valuePesentation;
+        myValuePresentation = valuePresentation;
         myVariable = variable;
     }
 
     @Override
     public void computePresentation(@Nonnull XValueNode node, @Nonnull XValuePlace place) {
-        myValuePesentation.setPresentation(node, myVariable);
+        myValuePresentation.setPresentation(node, myVariable);
     }
 
     @Override
     public boolean canNavigateToTypeSource() {
-        return myValuePesentation.canNavigateToTypeSource(myVariable);
+        return myValuePresentation.canNavigateToTypeSource(myVariable);
     }
 
     @Override
     public void computeTypeSourcePosition(@Nonnull XNavigatable navigatable) {
-        if (myValuePesentation.canNavigateToTypeSource(myVariable)) {
-            myValuePesentation.computeTypeSourcePosition(navigatable, myVariable);
+        if (myValuePresentation.canNavigateToTypeSource(myVariable)) {
+            myValuePresentation.computeTypeSourcePosition(navigatable, myVariable);
         }
     }
 }
