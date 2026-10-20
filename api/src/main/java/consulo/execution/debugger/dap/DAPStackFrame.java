@@ -12,7 +12,6 @@ import consulo.execution.debugger.dap.protocol.*;
 import consulo.execution.debugger.dap.value.DAPValueFactory;
 import consulo.ui.ex.ColoredTextContainer;
 import consulo.ui.ex.SimpleTextAttributes;
-import consulo.util.lang.StringUtil;
 import consulo.util.lang.lazy.LazyValue;
 import consulo.virtualFileSystem.LocalFileSystem;
 import consulo.virtualFileSystem.VirtualFile;
@@ -38,30 +37,44 @@ public class DAPStackFrame extends XStackFrame {
         myContext = context;
         myStackTrace = stackTrace;
         mySourcePositionValue = LazyValue.nullable(() -> {
-            Source source = myStackTrace.source;
-            if (source == null) {
-                return null;
-            }
-
-            String path = source.path;
-            if (path == null) {
-                return null;
-            }
-
-            return ReadAction.compute(() -> {
-                VirtualFile file = LocalFileSystem.getInstance().findFileByPath(path);
-                if (file == null) {
-                    return null;
-                }
-
-                XSourcePositionFactory factory = Application.get().getInstance(XSourcePositionFactory.class);
-                
-                return factory.createPosition(file,
-                    context.lineMapper().fromDAP(myStackTrace.line),
-                    context.columnMapper().fromDAP(myStackTrace.column)
-                );
-            });
+            XSourcePosition sourcePosition = findSourcePosition();
+            return sourcePosition != null ? sourcePosition : context.disassembly().findPosition(myStackTrace.instructionPointerReference);
         });
+    }
+
+    @Nullable
+    private XSourcePosition findSourcePosition() {
+        Source source = myStackTrace.source;
+        if (source == null) {
+            return null;
+        }
+
+        String path = source.path;
+        if (path == null) {
+            return null;
+        }
+
+        return ReadAction.compute(() -> {
+            VirtualFile file = LocalFileSystem.getInstance().findFileByPath(path);
+            if (file == null) {
+                return null;
+            }
+
+            XSourcePositionFactory factory = Application.get().getInstance(XSourcePositionFactory.class);
+
+            return factory.createPosition(file,
+                myContext.lineMapper().fromDAP(myStackTrace.line),
+                myContext.columnMapper().fromDAP(myStackTrace.column)
+            );
+        });
+    }
+
+    /**
+     * True when the frame has no source on disk and is shown in a disassembly listing.
+     */
+    public boolean isDisassembly() {
+        XSourcePosition position = getSourcePosition();
+        return position != null && myContext.disassembly().isDisassembly(position.getFile());
     }
 
     public int getFrameId() {
@@ -87,7 +100,7 @@ public class DAPStackFrame extends XStackFrame {
 
     @Override
     public void customizePresentation(ColoredTextContainer component) {
-        component.append(StringUtil.notNullize(myStackTrace.name), SimpleTextAttributes.REGULAR_ATTRIBUTES);
+        component.append(DAPDisassembly.frameLabel(myStackTrace), SimpleTextAttributes.REGULAR_ATTRIBUTES);
         Source source = myStackTrace.source;
         if (source != null && myStackTrace.line > 0) {
             String name = source.name != null ? source.name : source.path;

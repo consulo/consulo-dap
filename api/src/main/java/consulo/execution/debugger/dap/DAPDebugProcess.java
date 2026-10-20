@@ -59,6 +59,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
     });
 
     private final Capabilities capabilities = new Capabilities();
+    private final DAPDisassembly myDisassembly;
 
     private final Map<Integer, XLineBreakpoint> myBreakpointMapping = new ConcurrentHashMap<>();
 
@@ -88,6 +89,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
         Class<? extends XLineBreakpointType> lineBreakpointType = getLineBreakpointType().getClass();
         myHandlers = new XBreakpointHandler[]{new DAPLineBreakpointHandler(lineBreakpointType, this)};
+        myDisassembly = new DAPDisassembly(this::getDAP, capabilities, command -> getExecutor().execute(command));
     }
 
     @Nonnull
@@ -120,7 +122,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
     @Nonnull
     public DAPContext createContext() {
-        return new DAPContext(getDAP(), myValuePresentation.get(), myLineMapper, myColumnMapper);
+        return new DAPContext(getDAP(), myValuePresentation.get(), myLineMapper, myColumnMapper, myDisassembly);
     }
 
     public void start() {
@@ -219,8 +221,8 @@ public abstract class DAPDebugProcess extends XDebugProcess {
             int activeThreadId = threadId >= 0 || threads.isEmpty() ? threadId : threads.get(0).id;
             StackTraceArguments arguments = new StackTraceArguments();
             arguments.threadId = activeThreadId;
-            return dap.stackTrace(arguments)
-                .thenApply(trace -> new DAPSuspendContext(context, threads, activeThreadId, trace.stackFrames));
+            return dap.stackTrace(arguments).thenCompose(trace -> myDisassembly.prefetch(trace.stackFrames)
+                .thenApply(o -> new DAPSuspendContext(context, threads, activeThreadId, trace.stackFrames)));
         }).whenCompleteAsync((suspendContext, error) -> {
             if (error != null) {
                 LOG.warn("Failed to read the stopped state", error);
@@ -525,17 +527,27 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
     @Override
     public void startStepOver(@Nullable XSuspendContext context) {
-        step(context, (dap, threadId) -> dap.next(new NextArguments(threadId)));
+        String granularity = granularity(context);
+        step(context, (dap, threadId) -> {
+            NextArguments arguments = new NextArguments(threadId);
+            arguments.granularity = granularity;
+            return dap.next(arguments);
+        });
     }
 
     @Override
     public void startStepInto(@Nullable XSuspendContext context) {
-        step(context, (dap, threadId) -> dap.stepIn(new StepInArguments(threadId)));
+        String granularity = granularity(context);
+        step(context, (dap, threadId) -> {
+            StepInArguments arguments = new StepInArguments(threadId);
+            arguments.granularity = granularity;
+            return dap.stepIn(arguments);
+        });
     }
 
     @Override
     public void startForceStepInto(@Nullable XSuspendContext context) {
-        step(context, (dap, threadId) -> dap.stepIn(new StepInArguments(threadId)));
+        startStepInto(context);
     }
 
     @Override
@@ -564,6 +576,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
         AsyncResult<Void> result = AsyncResult.undefined();
         Task.Backgroundable.queue(getSession().getProject(), "Waiting for debugger response...", indicator -> {
             stopImpl();
+            myDisassembly.dispose();
             result.setDone();
         });
         return result;
@@ -602,6 +615,21 @@ public abstract class DAPDebugProcess extends XDebugProcess {
             }
         }
         return myLastStoppedThreadId;
+    }
+
+    /**
+     * Inside a disassembly listing a line is one instruction, so stepping by line would run until the next code with source.
+     */
+    @Nullable
+    protected String granularity(@Nullable XSuspendContext context) {
+        if (context == null || !Boolean.TRUE.equals(capabilities.supportsSteppingGranularity)) {
+            return null;
+        }
+        XExecutionStack stack = context.getActiveExecutionStack();
+        if (stack != null && stack.getTopFrame() instanceof DAPStackFrame frame && frame.isDisassembly()) {
+            return SteppingGranularity.INSTRUCTION;
+        }
+        return null;
     }
 
     private void step(@Nullable XSuspendContext context, BiFunction<DAP, Integer, CompletableFuture<Object>> request) {

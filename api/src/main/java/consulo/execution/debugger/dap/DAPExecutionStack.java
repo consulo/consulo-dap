@@ -55,7 +55,11 @@ public class DAPExecutionStack extends XExecutionStack {
                 return;
             }
             StackFrame[] frames = result.stackFrames == null ? new StackFrame[0] : result.stackFrames;
-            container.addStackFrames(List.of(toFrames(myContext, frames)), true);
+            myContext.disassembly().prefetch(frames).whenComplete((o, disassemblyError) -> {
+                if (!container.isObsolete()) {
+                    container.addStackFrames(List.of(toFrames(myContext, frames)), true);
+                }
+            });
         });
     }
 

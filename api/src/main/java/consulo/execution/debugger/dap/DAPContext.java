@@ -10,5 +10,6 @@ import consulo.execution.debugger.dap.value.DAPValuePresentation;
 public record DAPContext(DAP dap,
                          DAPValuePresentation valuePresentation,
                          SourceCodeMapper lineMapper,
-                         SourceCodeMapper columnMapper) {
+                         SourceCodeMapper columnMapper,
+                         DAPDisassembly disassembly) {
 }
