@@ -12,7 +12,6 @@ import consulo.execution.debugger.dap.protocol.*;
 import consulo.execution.debugger.dap.value.DAPValueFactory;
 import consulo.ui.ex.ColoredTextContainer;
 import consulo.ui.ex.SimpleTextAttributes;
-import consulo.util.lang.lazy.LazyValue;
 import consulo.virtualFileSystem.LocalFileSystem;
 import consulo.virtualFileSystem.VirtualFile;
 import jakarta.annotation.Nonnull;
@@ -21,7 +20,6 @@ import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 /**
  * @author VISTALL
@@ -30,16 +28,14 @@ import java.util.function.Supplier;
 public class DAPStackFrame extends XStackFrame {
     private final DAPContext myContext;
     private final StackFrame myStackTrace;
-    private final Supplier<XSourcePosition> mySourcePositionValue;
+    private final @Nullable XSourcePosition mySourcePosition;
 
     public DAPStackFrame(DAPContext context,
                          StackFrame stackTrace) {
         myContext = context;
         myStackTrace = stackTrace;
-        mySourcePositionValue = LazyValue.nullable(() -> {
-            XSourcePosition sourcePosition = findSourcePosition();
-            return sourcePosition != null ? sourcePosition : context.disassembly().findPosition(myStackTrace.instructionPointerReference);
-        });
+        XSourcePosition sourcePosition = findSourcePosition();
+        mySourcePosition = sourcePosition != null ? sourcePosition : context.disassembly().findPosition(stackTrace.instructionPointerReference);
     }
 
     @Nullable
@@ -95,7 +91,7 @@ public class DAPStackFrame extends XStackFrame {
     @Nullable
     @Override
     public XSourcePosition getSourcePosition() {
-        return mySourcePositionValue.get();
+        return mySourcePosition;
     }
 
     @Override
