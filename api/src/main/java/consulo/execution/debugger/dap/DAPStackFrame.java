@@ -12,7 +12,6 @@ import consulo.execution.debugger.dap.protocol.*;
 import consulo.execution.debugger.dap.value.DAPValueFactory;
 import consulo.ui.ex.ColoredTextContainer;
 import consulo.ui.ex.SimpleTextAttributes;
-import consulo.virtualFileSystem.LocalFileSystem;
 import consulo.virtualFileSystem.VirtualFile;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -51,7 +50,7 @@ public class DAPStackFrame extends XStackFrame {
         }
 
         return ReadAction.compute(() -> {
-            VirtualFile file = LocalFileSystem.getInstance().findFileByPath(path);
+            VirtualFile file = myContext.sourceFiles().apply(path);
             if (file == null) {
                 return null;
             }

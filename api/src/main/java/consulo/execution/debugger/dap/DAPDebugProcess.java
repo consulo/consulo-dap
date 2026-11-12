@@ -30,6 +30,10 @@ import consulo.util.lang.StringUtil;
 import consulo.util.lang.lazy.LazyValue;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+import java.nio.file.Path;
+import java.nio.file.InvalidPathException;
+import consulo.virtualFileSystem.VirtualFileManager;
+import consulo.virtualFileSystem.VirtualFile;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -122,7 +126,21 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
     @Nonnull
     public DAPContext createContext() {
-        return new DAPContext(getDAP(), myValuePresentation.get(), myLineMapper, myColumnMapper, myDisassembly);
+        return new DAPContext(getDAP(), myValuePresentation.get(), myLineMapper, myColumnMapper, myDisassembly, this::findSourceFile);
+    }
+
+    /**
+     * The file of a source path the adapter reports - a path of the machine the project and the debuggee live on.
+     */
+    protected @Nullable VirtualFile findSourceFile(String path) {
+        Path filePath;
+        try {
+            filePath = getSession().getProject().getPlatform().fs().getPath(path);
+        }
+        catch (InvalidPathException e) {
+            return null;
+        }
+        return VirtualFileManager.getInstance().findFileByNioPath(filePath);
     }
 
     public void start() {
@@ -557,7 +575,8 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
     @Override
     public void runToPosition(@Nonnull XSourcePosition position, @Nullable XSuspendContext context) {
-        String path = position.getFile().getPath();
+        // the path as the machine of the debuggee knows it, the same form the breakpoints are sent in
+        String path = position.getFile().getPresentableUrl();
         myRunToPath = path;
         myRunToLine = position.getLine();
         updateBreakpoints(path).whenComplete((o, error) -> resume(context));
