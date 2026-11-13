@@ -26,6 +26,7 @@ import consulo.execution.debugger.dap.protocol.DisassembledInstruction;
 import consulo.execution.debugger.dap.protocol.StackFrame;
 import consulo.logging.Logger;
 import consulo.virtualFileSystem.LocalFileSystem;
+import consulo.virtualFileSystem.RefreshQueue;
 import consulo.virtualFileSystem.VirtualFile;
 import jakarta.annotation.Nullable;
 
@@ -184,7 +185,7 @@ public final class DAPDisassembly {
         catch (IOException e) {
             LOG.warn("Failed to delete " + directory, e);
         }
-        LocalFileSystem.getInstance().refreshIoFiles(List.of(directory.toFile()), true, true, null);
+        RefreshQueue.getInstance().refreshPaths(true, true, null, List.of(directory));
     }
 
     private CompletableFuture<?> resolve(String instructionPointerReference, @Nullable String frameName) {
