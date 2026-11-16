@@ -143,6 +143,14 @@ public abstract class DAPDebugProcess extends XDebugProcess {
         return VirtualFileManager.getInstance().findFileByNioPath(filePath);
     }
 
+    /**
+     * The source path the adapter knows a local file by, the reverse of {@link #findSourceFile(String)}: by default the local path.
+     * Build systems which compile sources by relative paths (e.g. Bazel) map the file to the path stored in the debug symbols.
+     */
+    protected String toSourcePath(String filePath) {
+        return filePath;
+    }
+
     public void start() {
         Application.get().executeOnPooledThread(this::initializeAsync);
     }
@@ -353,7 +361,7 @@ public abstract class DAPDebugProcess extends XDebugProcess {
 
         SetBreakpointsArguments arguments = new SetBreakpointsArguments();
         arguments.source = new Source();
-        arguments.source.path = filePath;
+        arguments.source.path = toSourcePath(filePath);
 
         boolean conditions = Boolean.TRUE.equals(capabilities.supportsConditionalBreakpoints);
         List<SourceBreakpoint> sourceBreakpoints = new ArrayList<>(result.size() + 1);
