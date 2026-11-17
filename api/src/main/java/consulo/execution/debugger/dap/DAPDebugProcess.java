@@ -16,6 +16,7 @@ import consulo.execution.debug.breakpoint.XLineBreakpoint;
 import consulo.execution.debug.breakpoint.XLineBreakpointType;
 import consulo.execution.debug.frame.XExecutionStack;
 import consulo.execution.debug.frame.XSuspendContext;
+import consulo.execution.debug.step.HasRunToPosition;
 import consulo.execution.debugger.dap.protocol.*;
 import consulo.execution.debugger.dap.protocol.event.*;
 import consulo.execution.debugger.dap.value.DAPValuePresentation;
@@ -50,7 +51,7 @@ import java.util.function.Supplier;
  * @author VISTALL
  * @since 2024-12-25
  */
-public abstract class DAPDebugProcess extends XDebugProcess {
+public abstract class DAPDebugProcess extends XDebugProcess implements HasRunToPosition {
     private static final Logger LOG = Logger.getInstance(DAPDebugProcess.class);
 
     private volatile boolean myDapCreated;
@@ -569,11 +570,6 @@ public abstract class DAPDebugProcess extends XDebugProcess {
             arguments.granularity = granularity;
             return dap.stepIn(arguments);
         });
-    }
-
-    @Override
-    public void startForceStepInto(@Nullable XSuspendContext context) {
-        startStepInto(context);
     }
 
     @Override
