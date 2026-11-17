@@ -14,6 +14,7 @@ import consulo.execution.debug.breakpoint.XBreakpointHandler;
 import consulo.execution.debug.breakpoint.XExpression;
 import consulo.execution.debug.breakpoint.XLineBreakpoint;
 import consulo.execution.debug.breakpoint.XLineBreakpointType;
+import consulo.execution.debug.frame.HasRunningExecutionStacks;
 import consulo.execution.debug.frame.XExecutionStack;
 import consulo.execution.debug.frame.XSuspendContext;
 import consulo.execution.debug.step.HasRunToPosition;
@@ -51,7 +52,7 @@ import java.util.function.Supplier;
  * @author VISTALL
  * @since 2024-12-25
  */
-public abstract class DAPDebugProcess extends XDebugProcess implements HasRunToPosition {
+public abstract class DAPDebugProcess extends XDebugProcess implements HasRunToPosition, HasRunningExecutionStacks {
     private static final Logger LOG = Logger.getInstance(DAPDebugProcess.class);
 
     private volatile boolean myDapCreated;
@@ -536,6 +537,31 @@ public abstract class DAPDebugProcess extends XDebugProcess implements HasRunToP
     @Nonnull
     protected ConfigurationDoneArguments createConfigurationDoneArguments() {
         return new ConfigurationDoneArguments();
+    }
+
+    /**
+     * The threads of the debuggee as the adapter lists them - also while it runs, the frames are available only when it stops.
+     */
+    @Override
+    public void computeRunningExecutionStacks(XSuspendContext.XExecutionStackGroupContainer container, @Nullable XSuspendContext suspendContext) {
+        if (suspendContext != null) {
+            suspendContext.computeExecutionStacks(container);
+            return;
+        }
+        DAPContext context = createContext();
+        getDAP().threads(new ThreadsArguments()).whenComplete((threadsResult, error) -> {
+            if (error != null) {
+                container.errorOccurred(error.getMessage());
+                return;
+            }
+            List<XExecutionStack> stacks = new ArrayList<>();
+            if (threadsResult.threads != null) {
+                for (consulo.execution.debugger.dap.protocol.Thread thread : threadsResult.threads) {
+                    stacks.add(new DAPExecutionStack(context, thread, null));
+                }
+            }
+            container.addExecutionStack(stacks, true);
+        });
     }
 
     @Override
